@@ -6,7 +6,7 @@ conn = sqlite3.connect("films.db")
 cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE tblFilms
-(PRIMARY_KEY INTEGER,
+(id INTEGER PRIMARY KEY AUTOINCREMENT,
 TITLE TEXT,
 YEAR INTEGER,
 AGE TEXT,
