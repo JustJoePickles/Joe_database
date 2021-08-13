@@ -4,14 +4,25 @@ import easygui as ui
 conn = sqlite3.connect("films.db")
 c = conn.cursor()
 
+
 def sortdata():
     None
 
+
 def insert():
-    None
+    title = ui.enterbox("Please enter the title of the movie")
+    year = ui.integerbox("Please enter the year the movie was released", lowerbound=1888,upperbound=2050)
+    age = ui.enterbox("Please enter the age restriction on the movie")
+    runtime=ui.integerbox("Please enter the length of the film in minutes", lowerbound=0, upperbound=500)
+    genre=ui.enterbox("Please enter the genre of the film")
+    values = (str(title),int(year),str(age),int(runtime),str(genre))
+    c.execute("INSERT INTO tblFilms(TITLE,YEAR,AGE,RUNTIME,GENRE) VALUES (?,?,?,?,?);", values)
+    conn.commit()
+
 
 def amend():
     None
+
 
 def printdb():
     printtemp = []
@@ -21,8 +32,10 @@ def printdb():
         printtemp[i] = ", ".join([str(x) for x in printtemp[i]])
     ui.codebox("Here is the database", text="\n".join(printtemp))
 
+
 def delete():
     None
+
 
 ans = ""
 while ans != "Quit":
