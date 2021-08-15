@@ -24,7 +24,7 @@ def amend():
     None
 
 
-def printdb():
+def showdb():
     printtemp = []
     for row in c.execute('SELECT * FROM tblFilms'):
         printtemp.append(row)
@@ -34,14 +34,23 @@ def printdb():
 
 
 def delete():
-    None
+    c.execute("SELECT TITLE from tblFilms")
+    films = c.fetchall()
+    films = [t for x in films for t in x]
+    film = ui.multchoicebox("Which city do you want to delete", choices=films, preselect=None)
+    print(films, film)
+    for title in film:
+        print(title)
+        if title is not None:
+            c.execute("DELETE FROM tblFilms WHERE TITLE='" + title + "'")
+    conn.commit()
 
 
 ans = ""
 while ans != "Quit":
     ans = ui.buttonbox("What do you want to do", choices=["Print", "Insert", "Amend", "Delete", "Quit"], title="Menu")
     if ans == "Print":
-        printdb()
+        showdb()
     if ans == "Insert":
         insert()
     if ans == "Amend":
