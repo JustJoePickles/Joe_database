@@ -6,16 +6,44 @@ c = conn.cursor()
 
 
 def sortdata(name, year, rating, runtime, genre):
-    return [str(name).title(),int(year),str(rating).upper(),int(runtime),str(genre).title()]
+    return [str(name).title(), int(year), str(rating).upper().strip(), int(runtime), str(genre).title()]
+
+
+def insert_errorcheck(i, n, v):
+    if i == 1 or i == 3:
+        try:
+            v = int(v)
+        except:
+            return '"{}" must be an integer'.format(n)
+    if i == 1:
+        if v < 1888:
+            return 'There were no movies released in {}'.format(v)
+    if i == 3:
+        if v < 0:
+            return 'Movies must have a positive runtime, not {} minutes'.format(v)
+    if i == 2:
+        if v.upper().strip() not in ["G", "PG", "R", "R13", "R16", "R18", "M"]:
+            return '{} is not a valid age restriction'.format(v)
 
 
 def insert():
-    title = ui.enterbox("Please enter the title of the movie")
-    year = ui.integerbox("Please enter the year the movie was released", lowerbound=1888, upperbound=2050)
-    age = ui.enterbox("Please enter the age restriction on the movie")
-    runtime = ui.integerbox("Please enter the length of the film in minutes", lowerbound=0, upperbound=500)
-    genre = ui.enterbox("Please enter the genre of the film")
-    values = (str(title), int(year), str(age), int(runtime), str(genre))
+    fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
+    values = ui.multenterbox("Please enter the information on your film", "Add a film", fieldnames)
+    while 1:
+        if values is None:
+            break
+        errs = list()
+        for i, n, v in zip(range(len(fieldnames)), fieldnames, values):
+            if v.strip() == "":
+                errs.append('"{}" is a required field.'.format(n))
+            else:
+                if insert_errorcheck(i, n, v) is not None:
+                    errs.append(insert_errorcheck(i, n, v))
+                    print(values)
+                    values[i]=""
+        if not len(errs):
+            break
+        values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
     c.execute("INSERT INTO tblFilms(TITLE,YEAR,AGE,RUNTIME,GENRE) VALUES (?,?,?,?,?);", values)
     conn.commit()
 
@@ -36,10 +64,12 @@ def amend():
         for i in range(len(items)):
             if i == 0:
                 c.execute(
-                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(updated_values[i]) + "' where TITLE = '" + movie + "'")
+                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(
+                        updated_values[i]) + "' where TITLE = '" + movie + "'")
             else:
                 c.execute(
-                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(updated_values[i]) + "' where TITLE = '" + updated_values[
+                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(updated_values[i]) + "' where TITLE = '" +
+                    updated_values[
                         0] + "'")
     conn.commit()
 
@@ -50,8 +80,8 @@ def showdb():
         printtemp.append(row)
     print(printtemp)
     for i in range(len(printtemp)):
-        printtemp[i]=list(printtemp[i])
-        printtemp[i][0]=i+1
+        printtemp[i] = list(printtemp[i])
+        printtemp[i][0] = i + 1
         printtemp[i] = ", ".join([str(x) for x in printtemp[i]])
     ui.codebox("Here is the database", text="\n".join(printtemp))
 
