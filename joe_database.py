@@ -39,7 +39,6 @@ def insert():
             else:
                 if insert_errorcheck(i, n, v) is not None:
                     errs.append(insert_errorcheck(i, n, v))
-                    print(values)
                     values[i]=""
         if not len(errs):
             break
@@ -55,21 +54,33 @@ def amend():
     title = ui.multchoicebox("Which movie do you want to amend", choices=titles, preselect=None)
     items = ["TITLE", "YEAR", "AGE", "RUNTIME", "GENRE"]
     for movie in title:
-        name = ui.enterbox("Please enter a new title for " + movie)
-        year = ui.integerbox("Please enter a new year of release for " + movie)
-        rating = ui.enterbox("Please enter a new age rating for " + movie)
-        runtime = ui.integerbox("Please enter a new runtime for " + movie)
-        genre = ui.enterbox("Please enter a new genre for " + movie)
-        updated_values = sortdata(name, year, rating, runtime, genre)
+        fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
+        values = list(c.execute("SELECT * FROM tblFilms where TITLE = '"+movie+"'"))
+        values=list(values[0])[1:]
+        values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames,values)
+        while 1:
+            if values is None:
+                break
+            errs = list()
+            for i, n, v in zip(range(len(fieldnames)), fieldnames, values):
+                if v.strip() == "":
+                    errs.append('"{}" is a required field.'.format(n))
+                else:
+                    if insert_errorcheck(i, n, v) is not None:
+                        errs.append(insert_errorcheck(i, n, v))
+                        values[i] = ""
+            if not len(errs):
+                break
+            values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
         for i in range(len(items)):
             if i == 0:
                 c.execute(
                     "UPDATE tblFilms SET '" + items[i] + "' = '" + str(
-                        updated_values[i]) + "' where TITLE = '" + movie + "'")
+                        values[i]) + "' where TITLE = '" + movie + "'")
             else:
                 c.execute(
-                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(updated_values[i]) + "' where TITLE = '" +
-                    updated_values[
+                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(values[i]) + "' where TITLE = '" +
+                    values[
                         0] + "'")
     conn.commit()
 
