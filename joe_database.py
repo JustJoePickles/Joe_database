@@ -5,7 +5,8 @@ conn = sqlite3.connect("films.db")
 c = conn.cursor()
 
 
-def sortdata(name, year, rating, runtime, genre):
+def sortdata(values):
+    name,year,rating,runtime,genre=values
     return [str(name).title(), int(year), str(rating).upper().strip(), int(runtime), str(genre).title()]
 
 
@@ -41,10 +42,12 @@ def insert():
                     errs.append(insert_errorcheck(i, n, v))
                     values[i]=""
         if not len(errs):
+            values = sortdata(values)
+            c.execute("INSERT INTO tblFilms(TITLE,YEAR,AGE,RUNTIME,GENRE) VALUES (?,?,?,?,?);", values)
+            conn.commit()
             break
         values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
-    c.execute("INSERT INTO tblFilms(TITLE,YEAR,AGE,RUNTIME,GENRE) VALUES (?,?,?,?,?);", values)
-    conn.commit()
+
 
 
 def amend():
@@ -53,35 +56,39 @@ def amend():
     titles = [t for x in titles for t in x]
     title = ui.multchoicebox("Which movie do you want to amend", choices=titles, preselect=None)
     items = ["TITLE", "YEAR", "AGE", "RUNTIME", "GENRE"]
-    for movie in title:
-        fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
-        values = list(c.execute("SELECT * FROM tblFilms where TITLE = '"+movie+"'"))
-        values=list(values[0])[1:]
-        values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames,values)
-        while 1:
+    if title is not None:
+        for movie in title:
+            fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
+            values = list(c.execute("SELECT * FROM tblFilms where TITLE = '"+movie+"'"))
+            values=list(values[0])[1:]
+            values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames,values)
+            while 1:
+                if values is None:
+                    break
+                errs = list()
+                for i, n, v in zip(range(len(fieldnames)), fieldnames, values):
+                    if v.strip() == "":
+                        errs.append('"{}" is a required field.'.format(n))
+                    else:
+                        if insert_errorcheck(i, n, v) is not None:
+                            errs.append(insert_errorcheck(i, n, v))
+                            values[i] = ""
+                if not len(errs):
+                    break
+                values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
             if values is None:
-                break
-            errs = list()
-            for i, n, v in zip(range(len(fieldnames)), fieldnames, values):
-                if v.strip() == "":
-                    errs.append('"{}" is a required field.'.format(n))
+                continue
+            values = sortdata(values)
+            for i in range(len(items)):
+                if i == 0:
+                    c.execute(
+                        "UPDATE tblFilms SET '" + items[i] + "' = '" + str(
+                            values[i]) + "' where TITLE = '" + movie + "'")
                 else:
-                    if insert_errorcheck(i, n, v) is not None:
-                        errs.append(insert_errorcheck(i, n, v))
-                        values[i] = ""
-            if not len(errs):
-                break
-            values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
-        for i in range(len(items)):
-            if i == 0:
-                c.execute(
-                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(
-                        values[i]) + "' where TITLE = '" + movie + "'")
-            else:
-                c.execute(
-                    "UPDATE tblFilms SET '" + items[i] + "' = '" + str(values[i]) + "' where TITLE = '" +
-                    values[
-                        0] + "'")
+                    c.execute(
+                        "UPDATE tblFilms SET '" + items[i] + "' = '" + str(values[i]) + "' where TITLE = '" +
+                        values[
+                            0] + "'")
     conn.commit()
 
 
@@ -89,7 +96,6 @@ def showdb():
     printtemp = []
     for row in c.execute('SELECT * FROM tblFilms'):
         printtemp.append(row)
-    print(printtemp)
     for i in range(len(printtemp)):
         printtemp[i] = list(printtemp[i])
         printtemp[i][0] = i + 1
@@ -102,9 +108,10 @@ def delete():
     films = c.fetchall()
     films = [t for x in films for t in x]
     film = ui.multchoicebox("Which city do you want to delete", choices=films, preselect=None)
-    for title in film:
-        if title is not None:
-            c.execute("DELETE FROM tblFilms WHERE TITLE='" + title + "'")
+    if film is not None:
+        for title in film:
+            if title is not None:
+                c.execute("DELETE FROM tblFilms WHERE TITLE='" + title + "'")
     conn.commit()
 
 
@@ -119,3 +126,5 @@ while ans != "Quit":
         amend()
     if ans == "Delete":
         delete()
+    if ans is None:
+        break
