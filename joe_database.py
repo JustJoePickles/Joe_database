@@ -6,7 +6,7 @@ c = conn.cursor()
 
 
 def sortdata(values):
-    name,year,rating,runtime,genre=values
+    name, year, rating, runtime, genre = values
     return [str(name).title(), int(year), str(rating).upper().strip(), int(runtime), str(genre).title()]
 
 
@@ -40,14 +40,13 @@ def insert():
             else:
                 if insert_errorcheck(i, n, v) is not None:
                     errs.append(insert_errorcheck(i, n, v))
-                    values[i]=""
+                    values[i] = ""
         if not len(errs):
             values = sortdata(values)
             c.execute("INSERT INTO tblFilms(TITLE,YEAR,AGE,RUNTIME,GENRE) VALUES (?,?,?,?,?);", values)
             conn.commit()
             break
         values = ui.multenterbox("\n".join(errs), "Add a film", fieldnames, values)
-
 
 
 def amend():
@@ -59,9 +58,9 @@ def amend():
     if title is not None:
         for movie in title:
             fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
-            values = list(c.execute("SELECT * FROM tblFilms where TITLE = '"+movie+"'"))
-            values=list(values[0])[1:]
-            values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames,values)
+            values = list(c.execute("SELECT * FROM tblFilms where TITLE = '" + movie + "'"))
+            values = list(values[0])[1:]
+            values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames, values)
             while 1:
                 if values is None:
                     break
@@ -92,10 +91,17 @@ def amend():
     conn.commit()
 
 
-def showdb():
+def sort_category():
+    fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
+    column = ui.buttonbox("Choose a column to sort by", choices=fieldnames)
+    showdb(fieldnames.index(column) + 1)
+
+
+def showdb(sort_key):
     printtemp = []
     for row in c.execute('SELECT * FROM tblFilms'):
         printtemp.append(row)
+    printtemp = sorted(printtemp, key=lambda x: x[sort_key])
     for i in range(len(printtemp)):
         printtemp[i] = list(printtemp[i])
         printtemp[i][0] = i + 1
@@ -119,7 +125,16 @@ ans = ""
 while ans != "Quit":
     ans = ui.buttonbox("What do you want to do", choices=["Print", "Insert", "Amend", "Delete", "Quit"], title="Menu")
     if ans == "Print":
-        showdb()
+        choice = ui.buttonbox("What would you like to do?", choices=["Search for item", "Sort by category",
+                                                                     "View in default ordering", "Return to main menu"])
+        if choice == "Search for item":
+            pass
+        if choice == "Sort by category":
+            sort_category()
+        if choice == "View in default ordering":
+            showdb(0)
+        if choice == "Return to main menu":
+            pass
     if ans == "Insert":
         insert()
     if ans == "Amend":
