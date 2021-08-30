@@ -97,6 +97,40 @@ def sort_category():
     showdb(fieldnames.index(column) + 1)
 
 
+def search():
+    query = ui.enterbox("Please enter the name of the film you want to search for")
+    if query is not None:
+        lstquery = query.split()
+        temp = []
+        for i in range(len(lstquery)):
+            for x in range(len(lstquery)):
+                if x == 0:
+                    temp.append(lstquery[i:])
+                else:
+                    temp.append(lstquery[i:-x])
+        temp = [x for x in temp if x != []]
+        temp.sort(key=len, reverse=True)
+        inaccurate_search = False
+        for i in range(len(temp)):
+            temp[i] = " ".join(temp[i])
+            c.execute("SELECT * FROM tblFilms WHERE TITLE LIKE ? ", ("%" + temp[i] + "%",))
+            rows = c.fetchall()
+            if len(temp) - i == len(lstquery):
+                inaccurate_search = True
+            if rows != []:
+                print(temp[i])
+                break
+        rows = [tuple(str(x) for x in y) for y in rows]
+
+        if rows == []:
+            ui.msgbox("Sorry but there weren't any matches, try changing the spelling or viewing the entire database")
+        elif inaccurate_search == True:
+            ui.codebox("Sorry but there wasn't any exact results, here are the closest one's to your query ("+
+                       " ".join(lstquery)+"):", text="\n".join([", ".join(x[1:]) for x in rows]))
+        else:
+            ui.codebox("Search results:", text="\n".join([", ".join(x[1:]) for x in rows]))
+
+
 def showdb(sort_key):
     printtemp = []
     for row in c.execute('SELECT * FROM tblFilms'):
@@ -123,12 +157,13 @@ def delete():
 
 ans = ""
 while ans != "Quit":
-    ans = ui.buttonbox("What do you want to do", choices=["Print", "Insert", "Amend", "Delete", "Quit"], title="Menu")
-    if ans == "Print":
+    ans = ui.buttonbox("What do you want to do", choices=["View data", "Insert", "Amend", "Delete", "Quit"], title=
+    "Menu")
+    if ans == "View data":
         choice = ui.buttonbox("What would you like to do?", choices=["Search for item", "Sort by category",
                                                                      "View in default ordering", "Return to main menu"])
         if choice == "Search for item":
-            pass
+            search()
         if choice == "Sort by category":
             sort_category()
         if choice == "View in default ordering":
