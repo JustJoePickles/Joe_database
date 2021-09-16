@@ -11,19 +11,21 @@ def sortdata(values):
 
 
 def insert_errorcheck(i, n, v):
+    year_boundary = 1888
+    age_ratings = ["G", "PG", "R", "R13", "R16", "R18", "M"]
     if i == 1 or i == 3:
         try:
             v = int(v)
         except:
             return '"{}" must be an integer'.format(n)
     if i == 1:
-        if v < 1888:
+        if v < year_boundary:
             return 'There were no movies released in {}'.format(v)
     if i == 3:
-        if v < 0:
+        if v < 1:
             return 'Movies must have a positive runtime, not {} minutes'.format(v)
     if i == 2:
-        if v.upper().strip() not in ["G", "PG", "R", "R13", "R16", "R18", "M"]:
+        if v.upper().strip() not in age_ratings:
             return '{} is not a valid age restriction'.format(v)
 
 
@@ -58,14 +60,16 @@ def amend():
     if title is not None:
         for movie in title:
             fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
-            values = list(c.execute("SELECT * FROM tblFilms where TITLE = '" + movie + "'"))
+            sql = "SELECT * FROM tblFilms where TITLE = ?"
+            values = list(c.execute(sql,[movie]))
             values = list(values[0])[1:]
-            values = ui.multenterbox("Change the information you'd like", "Add a film", fieldnames, values)
+            values = ui.multenterbox("Change the information you'd like", "Amend a film", fieldnames, values)
             while 1:
                 if values is None:
                     break
                 errs = list()
                 for i, n, v in zip(range(len(fieldnames)), fieldnames, values):
+                    print(i,n,v)
                     if v.strip() == "":
                         errs.append('"{}" is a required field.'.format(n))
                     else:
@@ -80,25 +84,28 @@ def amend():
             values = sortdata(values)
             for i in range(len(items)):
                 if i == 0:
-                    c.execute(
-                        "UPDATE tblFilms SET '" + items[i] + "' = '" + str(
-                            values[i]) + "' where TITLE = '" + movie + "'")
+                    sql="UPDATE tblFilms SET '" + items[i] + "' = ? where TITLE = ?"
+                    c.execute(sql,[str(values[i]),movie])
                 else:
-                    c.execute(
-                        "UPDATE tblFilms SET '" + items[i] + "' = '" + str(values[i]) + "' where TITLE = '" +
-                        values[
-                            0] + "'")
+                    sql="UPDATE tblFilms SET '" + items[i] + "' = ? where TITLE = ?"
+                    c.execute(sql,[str(values[i]),values[0]])
     conn.commit()
 
 
 def sort_category():
     fieldnames = ["Title", "Release Year", "Age Rating", "Runtime (minutes)", "Genre"]
     column = ui.buttonbox("Choose a column to sort by", choices=fieldnames)
-    showdb(fieldnames.index(column) + 1)
+    if column is not None:
+        showdb(fieldnames.index(column) + 1)
 
 
 def search():
-    query = ui.enterbox("Please enter the name of the film you want to search for")
+    while 1:
+        query = ui.enterbox("Please enter the name of the film you want to search for")
+        if query == "":
+            ui.msgbox("This is a required field")
+        else:
+            break
     if query is not None:
         lstquery = query.split()
         temp = []
@@ -115,7 +122,7 @@ def search():
             temp[i] = " ".join(temp[i])
             c.execute("SELECT * FROM tblFilms WHERE TITLE LIKE ? ", ("%" + temp[i] + "%",))
             rows = c.fetchall()
-            if len(temp) - i == len(lstquery):
+            if len(temp) - i == len(lstquery) and len(lstquery) != 1:
                 inaccurate_search = True
             if rows != []:
                 print(temp[i])
@@ -125,11 +132,10 @@ def search():
         if rows == []:
             ui.msgbox("Sorry but there weren't any matches, try changing the spelling or viewing the entire database")
         elif inaccurate_search == True:
-            ui.codebox("Sorry but there wasn't any exact results, here are the closest one's to your query ("+
-                       " ".join(lstquery)+"):", text="\n".join([", ".join(x[1:]) for x in rows]))
+            ui.codebox("Sorry but there weren't any exact results, here are the closest ones to your query (" +
+                       " ".join(lstquery) + "):", text="\n".join([", ".join(x[1:]) for x in rows]))
         else:
             ui.codebox("Search results:", text="\n".join([", ".join(x[1:]) for x in rows]))
-
 
 def showdb(sort_key):
     printtemp = []
@@ -147,7 +153,7 @@ def delete():
     c.execute("SELECT TITLE from tblFilms")
     films = c.fetchall()
     films = [t for x in films for t in x]
-    film = ui.multchoicebox("Which city do you want to delete", choices=films, preselect=None)
+    film = ui.multchoicebox("Which movie do you want to delete", choices=films, preselect=None)
     if film is not None:
         for title in film:
             if title is not None:
